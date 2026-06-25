@@ -1,23 +1,28 @@
+import { Link } from "react-router-dom";
 const labs = [
   {
     icon: "🎭",
     title: "Mood Lab",
-    description: "Find movies based on your mood."
+    description: "Find movies based on your mood.",
+    path: "/mood"
   },
   {
     icon: "⚔️",
     title: "Debate Lab",
-    description: "Compare two movies."
+    description: "Compare two movies.",
+    path: "/debate"
   },
   {
     icon: "🧠",
     title: "Taste Lab",
-    description: "Discover your movie personality."
+    description: "Discover your movie personality.",
+    path: "/taste"
   },
   {
     icon: "🕰️",
     title: "Timeline Lab",
-    description: "Explore movies through time."
+    description: "Explore movies through time.",
+    path: "/timeline"
   }
 ];
 
@@ -39,8 +44,9 @@ function Home() {
         </h2>
         <div className="grid grid-cols-2 gap-6">
         {labs.map((lab) => (
-            <div 
+            <Link 
               key={lab.title}
+              to={lab.path}
               className="bg-gray-900 rounded-2xl p-6 border border-gray-800 hover:border-blue-500 transition cursor-pointer"
             >
                 <h3 className="text-4xl mb-4">{lab.icon}</h3>
@@ -52,7 +58,7 @@ function Home() {
                 <p className="text-gray-400">
                     {lab.description}
                 </p>
-            </div>
+            </Link>
         ))}
         </div>
         <div className="text-center mt-20 text-gray-500">
