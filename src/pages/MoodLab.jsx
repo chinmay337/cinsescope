@@ -1,23 +1,75 @@
 import { useState } from "react";
-import "../services/tmbd";
-import { getMoviesByMood } from "../services/tmbd";
+import { getMoviesByGenre, moodToGenre } from "../services/tmbd";
+import { analyzeMood } from "../services/gemini";
 
 function MoodLab() {
     const [selectedMood, setSelectedMood] = useState("");
 
     const [movies, setMovies] = useState([]);
 
-    async function testAPI() {
-        const data = await getTrendingMovies();
-        setMovies(data);
-    }
+    const [loading, setLoading] = useState(false);
+
+    const [userMood, setUserMood] = useState("");
+
+    const [insight, setInsight] = useState("");
+
+    const moodToGenre = {
+        Happy: "Comedy",
+        Sad: "Drama",
+        "Mind-Blown": "Science Fiction",
+        Relaxed: "Animation",
+        "Thriller Night": "Thriller",
+        Romantic: "Romance",
+        "Cozy Evening": "Family",
+        "Laugh Hard": "Comedy",
+    };
 
     async function handleMoodClick(mood) {
         setSelectedMood(mood);
+        setLoading(true);
 
-        const data = await getMoviesByMood(mood);
-        setMovies(data);
+        try {
+            const genre = moodToGenre[mood];
+
+            const data = await getMoviesByGenre(genre);
+
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+
+            setMovies(data);
+        } catch (error) {
+            console.error(error);
+            alert("Couldn't fetch movies. Please check your internet connection and try again.");
+
+        } finally {
+            setLoading(false);
+        }
     }
+
+    async function handleCustomMood() {
+        if (!userMood.trim()) return;
+
+        setLoading(true);
+
+        try {
+            const result = await analyzeMood(userMood);
+
+            setInsight(result.insight);
+
+            const data = await getMoviesByGenre(result.genre);
+
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+
+            setMovies(data);
+
+        } catch (error) {
+            console.error(error);
+            alert("Something went wrong. Please try again.");
+
+        } finally {
+            setLoading(false);
+        }
+    }
+
     return (
         <div className="min-h-screen bg-gray-950 text-white p-8">
 
@@ -79,11 +131,37 @@ function MoodLab() {
                 </h2>
 
                 <textarea
+                    onChange={(e) => setUserMood(e.target.value)}
                     placeholder="I want something emotional but hopeful..."
                     className="w-full bg-gray-900 border border-gray-800 rounded-xl p-4 outline-none"
                     rows="4"
                 />
             </div>
+
+            <button
+                onClick={handleCustomMood}
+                className="mt-4 bg-blue-600 hover:bg-blue-700 transition px-6 py-3 rounded-xl font-semibold"
+            >
+                ✨ Ask CineScope
+            </button>
+
+            {loading && (
+                <h2 className="text-center text-blue-400 text-xl mt-8">
+                    🍿 Curating your best movie for your mood...
+                </h2>
+            )}
+
+            {insight && (
+                <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mt-8 mb-8">
+                    <h2 className="text-xl font-semibold mb-2">
+                        🎬 CineScope whispers...
+                    </h2>
+
+                    <p className="text-gray-300 italic">
+                        "{insight}"
+                    </p>
+                </div>
+            )}
 
             <div className="mt-10">
                 {movies.map((movie) => (
@@ -101,11 +179,11 @@ function MoodLab() {
                             <h2 className="text-2xl font-bold">
                                 {movie.title}
                             </h2>
-                            
+
                             <p className="text-gray-400">
                                 📅 {movie.release_date}
                             </p>
-                            
+
                             <p className="text-yellow-400 mt-2">
                                 ⭐ {movie.vote_average.toFixed(1)} / 10
                             </p>
