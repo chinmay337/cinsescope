@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getMoviesByGenre, moodToGenre } from "../services/tmbd";
 import { analyzeMood } from "../services/gemini";
+import suggestions from "../data/suggestions"
 
 function MoodLab() {
     const [selectedMood, setSelectedMood] = useState("");
@@ -13,16 +14,44 @@ function MoodLab() {
 
     const [insight, setInsight] = useState("");
 
-    const moodToGenre = {
-        Happy: "Comedy",
-        Sad: "Drama",
-        "Mind-Blown": "Science Fiction",
-        Relaxed: "Animation",
-        "Thriller Night": "Thriller",
-        Romantic: "Romance",
-        "Cozy Evening": "Family",
-        "Laugh Hard": "Comedy",
-    };
+    const [displayedInsight, setDisplayedInsight] = useState("");
+
+    const [displaySuggestions, setDisplaySuggestions] = useState([]);
+
+    function refreshSuggestions() {
+        const shuffled = [...suggestions].sort(() => Math.random() - 0.5);
+
+        setDisplaySuggestions(shuffled.slice(0, 4));
+    }
+
+    useEffect(() => {
+        refreshSuggestions();
+    }, []);
+
+    useEffect(() => {
+        if (!insight) return;
+
+        let index = 0;
+
+        setDisplayedInsight("");
+
+        const interval = setInterval(() => {
+
+            setDisplayedInsight(
+                insight.slice(0, index + 1)
+            );
+
+            index++;
+
+            if (index === insight.length) {
+                clearInterval(interval);
+            }
+
+        }, 30);
+
+        return () => clearInterval(interval);
+
+    }, [insight]);
 
     async function handleMoodClick(mood) {
         setSelectedMood(mood);
@@ -51,7 +80,9 @@ function MoodLab() {
         setLoading(true);
 
         try {
-            const result = await analyzeMood(userMood);
+            const fullPrompt = `I'm in the mood to watch ${userMood}`;
+
+            const result = await analyzeMood(fullPrompt);
 
             setInsight(result.insight);
 
@@ -126,21 +157,50 @@ function MoodLab() {
             </div>
 
             <div className="mt-10">
-                <h2 className="text-2xl font-semibold mb-4">
-                    Or describe your mood
+                <h2 className="text-2xl font-semibold mb-2">
+                    🎬 Describe your perfect movie mood
                 </h2>
 
-                <textarea
+                <p className="text-gray-400 mb-4">
+                    I'm in the mood to watch...
+                </p>
+
+                <input
+                    type="text"
+                    value={userMood}
                     onChange={(e) => setUserMood(e.target.value)}
-                    placeholder="I want something emotional but hopeful..."
+                    placeholder="something comforting after a long day..."
                     className="w-full bg-gray-900 border border-gray-800 rounded-xl p-4 outline-none"
-                    rows="4"
                 />
+            </div>
+
+            <p className="text-gray-400 mt-4 mb-3">
+                💡 Need ideas?
+            </p>
+
+            <div className="flex flex-wrap gap-3">
+                {displaySuggestions.map((suggestion) => (
+                    <button
+                        key={suggestion}
+                        onClick={() => setUserMood(suggestion)}
+                        className="bg-gray-800 hover:bg-gray-700 transition px-4 py-2 rounded-full text-sm"
+                    >
+                        {suggestion}
+                    </button>
+                ))}
+
+                <button
+                    onClick={refreshSuggestions}
+                    className="mt-4 text-blue-400 hover:text-blue-300 transition"
+                >
+                    ✨ Show me more ideas
+                </button>
+
             </div>
 
             <button
                 onClick={handleCustomMood}
-                className="mt-4 bg-blue-600 hover:bg-blue-700 transition px-6 py-3 rounded-xl font-semibold"
+                className="mt-4 bg-blue-600 hover:bg-blue-700 transition px-5 py-3 rounded-xl font-semibold"
             >
                 ✨ Ask CineScope
             </button>
@@ -158,7 +218,7 @@ function MoodLab() {
                     </h2>
 
                     <p className="text-gray-300 italic">
-                        "{insight}"
+                        "{displayedInsight}"
                     </p>
                 </div>
             )}
